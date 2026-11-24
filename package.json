@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-calendar-gate",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "n8n community node to gate or stop workflow execution based on calendar rules, public holidays, days of the week, and date/time ranges.",
   "keywords": [
     "n8n-community-node-package",
