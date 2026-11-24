@@ -11,18 +11,26 @@
     "gate"
   ],
   "license": "MIT",
+  "author": {
+    "name": "huyphan",
+    "email": "huyplb@live.com"
+  },
+  "homepage": "https://github.com/tedious-code/n8n-nodes-calendar-gate#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tedious-code/n8n-nodes-calendar-gate.git"
   },
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
-    "test": "node --test dist/test/*.test.js"
+    "build": "tsc && cp nodes/CalendarGate/*.svg dist/nodes/CalendarGate/",
+    "test": "tsc -p tsconfig.test.json && node --test dist-test/test/*.test.js"
   },
   "files": [
     "dist"
   ],
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
   "n8n": {
     "n8nNodesApiVersion": 1,
     "nodes": [

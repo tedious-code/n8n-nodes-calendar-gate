@@ -4,7 +4,7 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 import {
 	CalendarRule,
 	evaluateCalendarGate,
@@ -16,31 +16,39 @@ export class CalendarGate implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Calendar Gate',
 		name: 'calendarGate',
-		icon: 'fa:calendar-times',
+		icon: {
+			light: 'file:calendarGate.svg',
+			dark: 'file:calendarGate.dark.svg',
+		},
 		group: ['transform'],
 		version: 1,
+		subtitle: '={{$parameter["operation"]}}',
 		description:
 			'Stop or allow workflow execution based on date/time ranges, public holidays (e.g. 01-01-*), and days of the week',
 		defaults: {
 			name: 'Calendar Gate',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		usableAsTool: true,
+		inputs: [NodeConnectionTypes.Main],
+		outputs: [NodeConnectionTypes.Main],
 		properties: [
 			{
-				displayName: 'Gate Mode',
-				name: 'gateMode',
+				displayName: 'Operation',
+				name: 'operation',
 				type: 'options',
+				noDataExpression: true,
 				options: [
 					{
 						name: 'Stop Workflow on Match',
 						value: 'stopOnMatch',
+						action: 'Stop workflow when calendar rules match',
 						description:
 							'Stop the workflow if the calendar rules match (e.g. stop on holidays or weekends)',
 					},
 					{
 						name: 'Allow Only on Match',
 						value: 'allowOnlyOnMatch',
+						action: 'Allow workflow only when calendar rules match',
 						description:
 							'Only continue the workflow when the calendar rules match (e.g. allow only during business hours)',
 					},
@@ -114,6 +122,64 @@ export class CalendarGate implements INodeType {
 						displayName: 'Rule',
 						values: [
 							{
+								displayName: 'Days of Week',
+								name: 'days',
+								type: 'multiOptions',
+								displayOptions: {
+									show: {
+										type: ['dayOfWeek'],
+									},
+								},
+								options: [
+									{ name: 'Sunday', value: 0 },
+									{ name: 'Monday', value: 1 },
+									{ name: 'Tuesday', value: 2 },
+									{ name: 'Wednesday', value: 3 },
+									{ name: 'Thursday', value: 4 },
+									{ name: 'Friday', value: 5 },
+									{ name: 'Saturday', value: 6 },
+								],
+								default: [0, 6],
+							},
+							{
+								displayName: 'End Date & Time',
+								name: 'endDateTime',
+								type: 'dateTime',
+								displayOptions: {
+									show: {
+										type: ['dateTimeRange'],
+									},
+								},
+								default: '',
+							},
+							{
+								displayName: 'End Time',
+								name: 'endTime',
+								type: 'string',
+								displayOptions: {
+									show: {
+										type: ['dayOfWeek', 'timeWindow'],
+									},
+								},
+								default: '',
+								placeholder: '17:00',
+								description: 'End time in 24-hour HH:mm format',
+							},
+							{
+								displayName: 'Holiday Patterns',
+								name: 'patterns',
+								type: 'string',
+								displayOptions: {
+									show: {
+										type: ['holiday'],
+									},
+								},
+								default: '01-01-*, 12-25-*',
+								placeholder: '01-01-*, 12-25-*, 2026-11-26',
+								description:
+									'Comma-separated patterns: MM-DD-* (recurring), MM-DD, or YYYY-MM-DD',
+							},
+							{
 								displayName: 'Rule Type',
 								name: 'type',
 								type: 'options',
@@ -138,40 +204,6 @@ export class CalendarGate implements INodeType {
 								default: 'holiday',
 							},
 							{
-								displayName: 'Days of Week',
-								name: 'days',
-								type: 'multiOptions',
-								displayOptions: {
-									show: {
-										type: ['dayOfWeek'],
-									},
-								},
-								options: [
-									{ name: 'Sunday', value: 0 },
-									{ name: 'Monday', value: 1 },
-									{ name: 'Tuesday', value: 2 },
-									{ name: 'Wednesday', value: 3 },
-									{ name: 'Thursday', value: 4 },
-									{ name: 'Friday', value: 5 },
-									{ name: 'Saturday', value: 6 },
-								],
-								default: [0, 6],
-							},
-							{
-								displayName: 'Holiday Patterns',
-								name: 'patterns',
-								type: 'string',
-								displayOptions: {
-									show: {
-										type: ['holiday'],
-									},
-								},
-								default: '01-01-*, 12-25-*',
-								placeholder: '01-01-*, 12-25-*, 2026-11-26',
-								description:
-									'Comma-separated patterns: MM-DD-* (recurring), MM-DD, or YYYY-MM-DD',
-							},
-							{
 								displayName: 'Start Date & Time',
 								name: 'startDateTime',
 								type: 'dateTime',
@@ -183,18 +215,7 @@ export class CalendarGate implements INodeType {
 								default: '',
 							},
 							{
-								displayName: 'End Date & Time',
-								name: 'endDateTime',
-								type: 'dateTime',
-								displayOptions: {
-									show: {
-										type: ['dateTimeRange'],
-									},
-								},
-								default: '',
-							},
-							{
-								displayName: 'Start Time (HH:mm)',
+								displayName: 'Start Time',
 								name: 'startTime',
 								type: 'string',
 								displayOptions: {
@@ -204,18 +225,7 @@ export class CalendarGate implements INodeType {
 								},
 								default: '',
 								placeholder: '09:00',
-							},
-							{
-								displayName: 'End Time (HH:mm)',
-								name: 'endTime',
-								type: 'string',
-								displayOptions: {
-									show: {
-										type: ['dayOfWeek', 'timeWindow'],
-									},
-								},
-								default: '',
-								placeholder: '17:00',
+								description: 'Start time in 24-hour HH:mm format',
 							},
 						],
 					},
@@ -226,7 +236,7 @@ export class CalendarGate implements INodeType {
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
-		const gateMode = this.getNodeParameter('gateMode', 0) as GateMode;
+		const gateMode = this.getNodeParameter('operation', 0) as GateMode;
 		const onStopAction = this.getNodeParameter('onStopAction', 0) as string;
 		const matchMode = this.getNodeParameter('matchMode', 0) as MatchMode;
 		const timezone = this.getNodeParameter('timezone', 0) as string;
