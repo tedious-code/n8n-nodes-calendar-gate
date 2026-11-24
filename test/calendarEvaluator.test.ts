@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateCalendarGate } from '../nodes/CalendarGate/calendarEvaluator.ts';
+import { evaluateCalendarGate } from '../nodes/CalendarGate/calendarEvaluator';
 
 describe('evaluateCalendarGate', () => {
 	it('stops workflow on static recurring public holidays (01-01-*, 12-25-*)', () => {

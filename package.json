@@ -11,6 +11,10 @@
     "gate"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tedious-code/n8n-nodes-calendar-gate.git"
+  },
   "main": "index.js",
   "scripts": {
     "build": "tsc",
